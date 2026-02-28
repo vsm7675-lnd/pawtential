@@ -235,39 +235,54 @@ export default function BreedFinderApp() {
   })
   const questionsPerPage = 4
 
-  // Android hardware back button handling
-  useEffect(() => {
-    const handleBackButton = (e: PopStateEvent) => {
-      e.preventDefault()
-
-      // Handle back navigation based on current view
-      if (view === 'profile') {
-        setView('home')
-      } else if (view === 'results') {
-        setView('quiz')
-        setQuizPage(0)
-      } else if (view === 'quiz' && quizPage > 0) {
-        setQuizPage(prev => prev - 1)
-      } else if (view === 'quiz') {
-        setView('home')
-        setQuizPage(0)
-      } else if (view === 'compare' || view === 'favorites' || view === 'explore') {
-        setView('home')
-      } else if (view === 'home' && petPreference) {
-        setPetPreference(null)
-        setCurrentIndex(0)
-      }
-      // If on home with no pet preference, let default behavior (exit app)
+  // Back navigation function
+  const goBack = () => {
+    if (view === 'profile') {
+      setSelectedBreed(null)
+      setView('home')
+    } else if (view === 'results') {
+      setView('quiz')
+      setQuizPage(0)
+    } else if (view === 'quiz' && quizPage > 0) {
+      setQuizPage(prev => prev - 1)
+    } else if (view === 'quiz') {
+      setView('home')
+      setQuizPage(0)
+    } else if (view === 'compare' || view === 'favorites' || view === 'explore') {
+      setView('home')
+    } else if (view === 'home' && petPreference) {
+      setPetPreference(null)
+      setCurrentIndex(0)
     }
+  }
 
-    // Listen for browser back button (also works in Capacitor WebView)
-    window.addEventListener('popstate', handleBackButton)
-
-    // Push a state so we can intercept back button
+  // Android hardware back button handling - simplified
+  useEffect(() => {
+    // Capacitor App plugin back button
+    const setupBackButton = async () => {
+      try {
+        const { App } = await import('@capacitor/app')
+        App.addListener('backButton', () => {
+          goBack()
+        })
+      } catch (e) {
+        // Not running in Capacitor or plugin not available
+        console.log('Capacitor App plugin not available')
+      }
+    }
+    
+    setupBackButton()
+    
+    // Also handle browser back button for web
+    const handlePopState = () => {
+      goBack()
+    }
+    
+    window.addEventListener('popstate', handlePopState)
     window.history.pushState(null, '', window.location.href)
-
+    
     return () => {
-      window.removeEventListener('popstate', handleBackButton)
+      window.removeEventListener('popstate', handlePopState)
     }
   }, [view, quizPage, petPreference])
 
@@ -359,7 +374,7 @@ export default function BreedFinderApp() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-teal-50 flex flex-col">
       {/* Main Content */}
-      <main className="flex-1 overflow-auto pb-20">
+      <main className="flex-1 overflow-auto pb-40">
         <AnimatePresence mode="wait">
           <motion.div key={view} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
             
@@ -570,7 +585,7 @@ export default function BreedFinderApp() {
 
                 {/* Compare Button */}
                 {compareList.length >= 2 && (
-                  <div className="fixed bottom-24 left-4 right-4 max-w-md mx-auto">
+                  <div className="fixed bottom-40 left-4 right-4 max-w-md mx-auto">
                     <Button 
                       onClick={() => setView('compare')} 
                       className="w-full bg-emerald-600 hover:bg-emerald-700 py-6"
@@ -826,39 +841,34 @@ export default function BreedFinderApp() {
                         if (!breed) return null
                         return (
                           <div key={id} className="text-center">
-                            <BreedImage breed={breed} className="w-full h-16 object-cover rounded-lg mb-1" />
-                            <div className="text-xs font-medium truncate">{breed.breed_name}</div>
+                            <BreedImage breed={breed} className="w-16 h-16 rounded-full mx-auto object-cover mb-1" />
+                            <p className="text-xs font-medium truncate">{breed.breed_name}</p>
                           </div>
                         )
                       })}
                     </div>
 
-                    {/* Comparison Grid */}
+                    {/* Comparison Rows */}
                     <div className="space-y-2">
                       {[
-                        { label: 'Size', key: 'size', get: (b: Breed) => ({ value: getSizeCategory(b), color: 'text-gray-700' }) },
-                        { label: 'Cost/mo', key: 'cost', get: (b: Breed) => ({ value: formatCurrency(b.avg_total_monthly_cost_inr), color: 'text-gray-700' }) },
-                        { label: 'Time/day', key: 'time', get: (b: Breed) => ({ value: `${b.avg_total_daily_time_hours}h`, color: 'text-gray-700' }) },
-                        { label: 'Climate', key: 'climate', get: (b: Breed) => ({ 
-                          value: b.heat_tolerance >= 4 ? 'Great' : b.heat_tolerance >= 3 ? 'Good' : 'Poor',
-                          color: b.heat_tolerance >= 4 ? 'text-green-600' : b.heat_tolerance >= 3 ? 'text-yellow-600' : 'text-red-600'
-                        }) },
-                        { label: 'Kid-Safe', key: 'kids', get: (b: Breed) => ({ 
-                          value: '★'.repeat(b.child_friendly) + '☆'.repeat(5 - b.child_friendly),
-                          color: b.child_friendly >= 4 ? 'text-green-600' : b.child_friendly >= 3 ? 'text-yellow-600' : 'text-red-600'
-                        }) },
-                        { label: 'Energy', key: 'energy', get: (b: Breed) => ({ value: `${b.energy_level}/5`, color: 'text-gray-700' }) },
-                        { label: 'Grooming', key: 'grooming', get: (b: Breed) => ({ value: `${b.grooming}/5`, color: 'text-gray-700' }) },
-                      ].map(metric => (
-                        <div key={metric.key} className="grid gap-2" style={{ gridTemplateColumns: `100px repeat(${compareList.length}, 1fr)` }}>
-                          <div className="bg-emerald-700 text-white p-2 rounded-lg text-sm font-medium">{metric.label}</div>
+                        { label: 'Size', field: 'avg_weight_kg', unit: 'kg' },
+                        { label: 'Monthly Cost', field: 'avg_total_monthly_cost_inr', unit: '₹', format: formatCurrency },
+                        { label: 'Daily Time', field: 'avg_total_daily_time_hours', unit: 'hrs' },
+                        { label: 'Energy', field: 'energy_level' },
+                        { label: 'Shedding', field: 'shedding_level' },
+                        { label: 'Child Friendly', field: 'child_friendly' },
+                        { label: 'Trainability', field: 'trainability' },
+                        { label: 'Health Issues', field: 'health_issues' },
+                      ].map(row => (
+                        <div key={row.field} className="grid gap-2 bg-white rounded-lg p-2" style={{ gridTemplateColumns: `100px repeat(${compareList.length}, 1fr)` }}>
+                          <div className="text-xs font-medium text-gray-500 flex items-center">{row.label}</div>
                           {compareList.map(id => {
                             const breed = breeds.find(b => b.id === id)
-                            if (!breed) return <div key={id} className="bg-gray-100 p-2 rounded-lg">-</div>
-                            const result = metric.get(breed)
+                            if (!breed) return null
+                            const value = (breed as any)[row.field]
                             return (
-                              <div key={id} className="bg-gray-50 p-2 rounded-lg text-center">
-                                <span className={`text-sm font-medium ${result.color}`}>{result.value}</span>
+                              <div key={id} className="text-center text-sm font-medium">
+                                {row.format ? row.format(value) : value}{row.unit && !row.format ? ` ${row.unit}` : ''}
                               </div>
                             )
                           })}
@@ -866,27 +876,9 @@ export default function BreedFinderApp() {
                       ))}
                     </div>
 
-                    {/* Smart Insight */}
-                    <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Lightbulb className="w-5 h-5 text-blue-600" />
-                        <span className="font-bold text-blue-800">Smart Insight</span>
-                      </div>
-                      <p className="text-sm text-blue-700">
-                        {compareList.length >= 2 && (() => {
-                          const b1 = breeds.find(b => b.id === compareList[0])
-                          const b2 = breeds.find(b => b.id === compareList[1])
-                          if (!b1 || !b2) return ''
-                          const costDiff = Math.abs(b1.avg_total_monthly_cost_inr - b2.avg_total_monthly_cost_inr)
-                          if (b1.avg_total_monthly_cost_inr < b2.avg_total_monthly_cost_inr) {
-                            return `${b1.breed_name} is more budget-friendly at ${formatCurrency(b1.avg_total_monthly_cost_inr)}/mo compared to ${b2.breed_name} at ${formatCurrency(b2.avg_total_monthly_cost_inr)}/mo.`
-                          }
-                          return `${b1.breed_name} costs ${formatCurrency(b1.avg_total_monthly_cost_inr)}/mo while ${b2.breed_name} costs ${formatCurrency(b2.avg_total_monthly_cost_inr)}/mo. Consider your budget and lifestyle needs.`
-                        })()}
-                      </p>
-                    </div>
-
-                    <Button onClick={() => setCompareList([])} variant="outline" className="w-full mt-4">Clear Selection</Button>
+                    <Button onClick={() => setCompareList([])} variant="outline" className="w-full mt-4">
+                      Clear Comparison
+                    </Button>
                   </>
                 )}
               </div>
@@ -896,205 +888,153 @@ export default function BreedFinderApp() {
             {view === 'explore' && (
               <div className="p-4">
                 <h1 className="text-2xl font-bold mb-4">Explore Breeds</h1>
-                <p className="text-gray-500 text-sm mb-4">Browse all breeds. Take the Quiz to find your perfect match!</p>
-                <Input placeholder="Search breeds..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="mb-4" />
+                <Input 
+                  placeholder="Search breeds..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="mb-4"
+                />
                 <div className="grid grid-cols-2 gap-3">
-                  {breeds.filter(b => b.breed_name.toLowerCase().includes(searchQuery.toLowerCase())).map(breed => (
-                    <Card key={breed.id} className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" onClick={() => { setSelectedBreed(breed); setView('profile') }}>
-                      <BreedImage breed={breed} className="w-full h-28 object-cover" />
-                      <CardContent className="p-2">
-                        <h3 className="font-medium text-sm truncate">{breed.breed_name}</h3>
-                        <div className="flex items-center justify-between mt-1">
-                          <Badge variant="outline" className="text-xs">{getSizeCategory(breed)}</Badge>
-                          <Badge variant="secondary" className="text-xs">
-                            {breed.origin_country}
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {breeds
+                    .filter(b => b.breed_name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .slice(0, 20)
+                    .map(breed => (
+                      <Card 
+                        key={breed.id} 
+                        className="overflow-hidden cursor-pointer"
+                        onClick={() => { setSelectedBreed(breed); setView('profile') }}
+                      >
+                        <BreedImage breed={breed} className="w-full h-24 object-cover" />
+                        <CardContent className="p-2">
+                          <h3 className="font-medium text-sm truncate">{breed.breed_name}</h3>
+                          <Badge variant="outline" className="text-xs mt-1">{getSizeCategory(breed)}</Badge>
+                        </CardContent>
+                      </Card>
+                    ))}
                 </div>
               </div>
             )}
 
             {/* PROFILE VIEW */}
             {view === 'profile' && selectedBreed && (
-              <div>
-                <div className="relative h-64">
+              <div className="p-4">
+                <button onClick={() => { setSelectedBreed(null); setView('home') }} className="text-gray-600 text-sm flex items-center gap-1 mb-4">
+                  <ChevronLeft className="w-4 h-4" /> Back
+                </button>
+
+                {/* Hero Image */}
+                <div className="relative h-48 rounded-xl overflow-hidden mb-4">
                   <BreedImage breed={selectedBreed} className="w-full h-full object-cover" />
-                  <button onClick={() => setView('home')} className="absolute top-4 left-4 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow">
-                    <ChevronLeft className="w-6 h-6" />
-                  </button>
-                  <button 
-                    onClick={() => setFavorites(prev => prev.includes(selectedBreed.id) ? prev.filter(id => id !== selectedBreed.id) : [...prev, selectedBreed.id])} 
-                    className="absolute top-4 right-4 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow"
-                  >
-                    <Heart className={`w-6 h-6 ${favorites.includes(selectedBreed.id) ? 'fill-red-500 text-red-500' : ''}`} />
-                  </button>
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 p-4">
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
                     <h1 className="text-2xl font-bold text-white">{selectedBreed.breed_name}</h1>
-                    <div className="flex gap-2 mt-2">
-                      <Badge className="bg-white/90 text-gray-800">{getSizeCategory(selectedBreed)}</Badge>
-                      <Badge className="bg-white/90 text-gray-800">{selectedBreed.origin_country}</Badge>
-                    </div>
+                    <p className="text-white/80 text-sm">{selectedBreed.origin_country}</p>
                   </div>
                 </div>
 
-                <Tabs defaultValue="overview" className="p-4">
-                  <TabsList className="grid grid-cols-4 w-full">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="costs">Costs</TabsTrigger>
-                    <TabsTrigger value="diet">Diet</TabsTrigger>
-                    <TabsTrigger value="notes">Notes</TabsTrigger>
-                  </TabsList>
+                {loadingProfile ? (
+                  <div className="flex justify-center py-8">
+                    <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Quick Stats */}
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      <div className="bg-emerald-50 rounded-xl p-3 text-center">
+                        <div className="text-lg font-bold text-emerald-700">{formatCurrency(selectedBreed.avg_total_monthly_cost_inr)}</div>
+                        <div className="text-xs text-gray-500">per month</div>
+                      </div>
+                      <div className="bg-blue-50 rounded-xl p-3 text-center">
+                        <div className="text-lg font-bold text-blue-700">{selectedBreed.avg_total_daily_time_hours}h</div>
+                        <div className="text-xs text-gray-500">per day</div>
+                      </div>
+                      <div className="bg-purple-50 rounded-xl p-3 text-center">
+                        <div className="text-lg font-bold text-purple-700">{selectedBreed.avg_weight_kg}kg</div>
+                        <div className="text-xs text-gray-500">avg weight</div>
+                      </div>
+                    </div>
 
-                  <TabsContent value="overview" className="mt-4">
-                    <Card><CardContent className="p-4">
-                      <h3 className="font-bold mb-2">About</h3>
-                      <p className="text-gray-600 text-sm">{selectedBreed.description}</p>
-                      <Separator className="my-4" />
-                      <h3 className="font-bold mb-3">Traits</h3>
-                      <div className="space-y-2">
+                    {/* Traits */}
+                    <div className="bg-white rounded-xl p-4 mb-4 shadow-sm">
+                      <h2 className="font-bold text-gray-800 mb-3">Traits</h2>
+                      <div className="space-y-3">
                         {[
-                          { label: 'Adaptability', value: selectedBreed.adaptability },
-                          { label: 'Affection Level', value: selectedBreed.affection_level },
-                          { label: 'Energy Level', value: selectedBreed.energy_level },
-                          { label: 'Intelligence', value: selectedBreed.intelligence },
-                          { label: 'Child Friendly', value: selectedBreed.child_friendly },
-                          { label: 'Senior Friendly', value: selectedBreed.senior_friendly },
-                          { label: 'Urban Friendly', value: selectedBreed.urban_friendly },
-                        ].map(t => (
-                          <div key={t.label}>
-                            <div className="flex justify-between text-sm"><span>{t.label}</span><span>{t.value}/5</span></div>
-                            <Progress value={t.value * 20} className="h-2" />
+                          { label: 'Energy Level', value: selectedBreed.energy_level, color: 'bg-orange-500' },
+                          { label: 'Shedding', value: selectedBreed.shedding_level, color: 'bg-yellow-500' },
+                          { label: 'Trainability', value: selectedBreed.trainability, color: 'bg-blue-500' },
+                          { label: 'Child Friendly', value: selectedBreed.child_friendly, color: 'bg-green-500' },
+                          { label: 'Health Issues', value: selectedBreed.health_issues, color: 'bg-red-500' },
+                          { label: 'Adaptability', value: selectedBreed.adaptability, color: 'bg-purple-500' },
+                        ].map(trait => (
+                          <div key={trait.label}>
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="text-gray-600">{trait.label}</span>
+                              <span className="font-medium">{trait.value}/5</span>
+                            </div>
+                            <Progress value={trait.value * 20} className="h-2" />
                           </div>
                         ))}
-                      </div>
-                    </CardContent></Card>
-                  </TabsContent>
-
-                  <TabsContent value="costs" className="mt-4">
-                    <Card><CardContent className="p-4">
-                      <h3 className="font-bold mb-3 flex items-center gap-2"><Wallet className="w-5 h-5 text-emerald-600" /> Monthly Costs</h3>
-                      <div className="space-y-2">
-                        <div className="flex justify-between"><span className="text-gray-600">Food</span><span>{formatCurrency(selectedBreed.avg_monthly_food_cost_inr)}</span></div>
-                        <div className="flex justify-between"><span className="text-gray-600">Grooming</span><span>{formatCurrency(selectedBreed.avg_professional_grooming_cost_monthly)}</span></div>
-                        <div className="flex justify-between"><span className="text-gray-600">Vet (avg)</span><span>{formatCurrency(selectedBreed.avg_vet_cost_monthly_avg)}</span></div>
-                        <Separator />
-                        <div className="flex justify-between font-bold text-lg"><span>Total Monthly</span><span className="text-emerald-600">{formatCurrency(selectedBreed.avg_total_monthly_cost_inr)}</span></div>
-                        <div className="flex justify-between text-sm text-gray-500"><span>Estimated Annual</span><span>{formatCurrency(selectedBreed.avg_total_monthly_cost_inr * 12)}</span></div>
-                      </div>
-                      <Separator className="my-4" />
-                      <h3 className="font-bold mb-3 flex items-center gap-2"><Clock className="w-5 h-5 text-emerald-600" /> Time Commitment</h3>
-                      <div className="space-y-2">
-                        <div className="flex justify-between"><span className="text-gray-600">Daily Exercise</span><span>{selectedBreed.avg_exercise_minutes_daily} min</span></div>
-                        <div className="flex justify-between"><span className="text-gray-600">Daily Social Time</span><span>{selectedBreed.avg_social_interaction_hours_daily} hrs</span></div>
-                        <div className="flex justify-between"><span className="text-gray-600">Monthly Grooming</span><span>{selectedBreed.avg_grooming_hours_monthly} hrs</span></div>
-                        <Separator />
-                        <div className="flex justify-between font-bold"><span>Total Daily</span><span>{selectedBreed.avg_total_daily_time_hours} hrs</span></div>
-                      </div>
-                    </CardContent></Card>
-                  </TabsContent>
-
-                  <TabsContent value="diet" className="mt-4">
-                    <Card><CardContent className="p-4">
-                      <h3 className="font-bold mb-3">Dietary Information</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <div className="text-sm text-gray-500 mb-1">Sensitivity Level</div>
-                          <Progress value={selectedBreed.dietary_sensitivity_level * 20} className="h-3" />
-                          <div className="text-right text-sm mt-1">{selectedBreed.dietary_sensitivity_level}/5</div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-gray-500 mb-1">Obesity Risk</div>
-                          <Progress value={selectedBreed.obesity_prone * 20} className="h-3" />
-                          <div className="text-right text-sm mt-1">{selectedBreed.obesity_prone}/5</div>
-                        </div>
-                        {selectedBreed.common_food_allergies && (
-                          <div>
-                            <div className="text-sm text-gray-500 mb-1">Common Allergies</div>
-                            <p className="text-gray-800">{selectedBreed.common_food_allergies}</p>
+                        
+                        {/* Senior Friendly */}
+                        {(selectedBreed as any).senior_friendly !== undefined && (
+                          <div className="flex justify-between text-sm pt-2 border-t">
+                            <span className="text-gray-600">Senior Friendly</span>
+                            <span className="font-medium">{(selectedBreed as any).senior_friendly === 1 ? 'Yes' : 'No'}</span>
                           </div>
                         )}
-                        <div>
-                          <div className="text-sm text-gray-500 mb-1">Recommended Diet</div>
-                          <p className="text-gray-800">{selectedBreed.recommended_diet_type}</p>
-                        </div>
                       </div>
-                    </CardContent></Card>
-                  </TabsContent>
+                    </div>
 
-                  <TabsContent value="notes" className="mt-4">
-                    <Card className="border-yellow-200 bg-yellow-50"><CardContent className="p-4">
-                      <h3 className="font-bold mb-2 flex items-center gap-2 text-yellow-700">
-                        <AlertTriangle className="w-5 h-5" /> Guardian Notes
-                      </h3>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{cleanGuardianNote(selectedBreed.guardian_note)}</p>
-                    </CardContent></Card>
-                    
-                    <Card className="mt-4"><CardContent className="p-4">
-                      <h3 className="font-bold mb-3">Climate Tolerance</h3>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <Thermometer className="w-5 h-5 mx-auto mb-1 text-red-500" />
-                          <div className="text-xs text-gray-500">Heat</div>
-                          <div className="font-medium">{selectedBreed.heat_tolerance}/5</div>
-                        </div>
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <Thermometer className="w-5 h-5 mx-auto mb-1 text-blue-500" />
-                          <div className="text-xs text-gray-500">Cold</div>
-                          <div className="font-medium">{selectedBreed.cold_tolerance}/5</div>
-                        </div>
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <Thermometer className="w-5 h-5 mx-auto mb-1 text-green-500" />
-                          <div className="text-xs text-gray-500">Humidity</div>
-                          <div className="font-medium">{selectedBreed.humidity_tolerance}/5</div>
-                        </div>
+                    {/* Guardian Notes */}
+                    {(selectedBreed as any).guardian_notes && (
+                      <div className="bg-amber-50 rounded-xl p-4 mb-4 border border-amber-200">
+                        <h2 className="font-bold text-amber-800 mb-2 flex items-center gap-2">
+                          <AlertTriangle className="w-5 h-5" /> Guardian Notes
+                        </h2>
+                        <p className="text-sm text-amber-700 whitespace-pre-line">
+                          {cleanGuardianNote((selectedBreed as any).guardian_notes)}
+                        </p>
                       </div>
-                    </CardContent></Card>
+                    )}
 
-                    <Card className="mt-4"><CardContent className="p-4">
-                      <h3 className="font-bold mb-2 flex items-center gap-2">
-                        <Bookmark className="w-5 h-5 text-emerald-600" /> My Notes
-                      </h3>
-                      <textarea
-                        value={notes[selectedBreed.id] || ''}
-                        onChange={e => setNotes(prev => ({ ...prev, [selectedBreed.id]: e.target.value }))}
-                        placeholder="Add your personal notes about this breed..."
-                        className="w-full h-24 p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </CardContent></Card>
-                  </TabsContent>
-                </Tabs>
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                      <Button 
+                        className="flex-1" 
+                        onClick={() => {
+                          if (favorites.includes(selectedBreed.id)) {
+                            setFavorites(prev => prev.filter(id => id !== selectedBreed.id))
+                            toast({ title: 'Removed from Favorites' })
+                          } else {
+                            setFavorites(prev => [...prev, selectedBreed.id])
+                            toast({ title: 'Added to Favorites!' })
+                          }
+                        }}
+                        variant={favorites.includes(selectedBreed.id) ? 'default' : 'outline'}
+                      >
+                        <Heart className={`w-4 h-4 mr-2 ${favorites.includes(selectedBreed.id) ? 'fill-current' : ''}`} />
+                        {favorites.includes(selectedBreed.id) ? 'Favorited' : 'Add to Favorites'}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          if (compareList.includes(selectedBreed.id)) {
+                            setCompareList(prev => prev.filter(id => id !== selectedBreed.id))
+                          } else if (compareList.length < 4) {
+                            setCompareList(prev => [...prev, selectedBreed.id])
+                            toast({ title: 'Added to Compare' })
+                          }
+                        }}
+                      >
+                        <GitCompare className={`w-4 h-4 ${compareList.includes(selectedBreed.id) ? 'text-emerald-600' : ''}`} />
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
-
           </motion.div>
         </AnimatePresence>
       </main>
-
-      {/* Bottom Navigation with safe area padding for Android gestures */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 z-50 pb-4">
-        <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
-          {[
-            { id: 'home' as View, icon: Home, label: 'Home' },
-            { id: 'quiz' as View, icon: Sparkles, label: 'Quiz' },
-            { id: 'favorites' as View, icon: Heart, label: 'Favorites', count: favorites.length },
-            { id: 'compare' as View, icon: GitCompare, label: 'Compare', count: compareList.length },
-            { id: 'explore' as View, icon: Compass, label: 'Explore' },
-          ].map(({ id, icon: Icon, label, count }) => (
-            <button key={id} onClick={() => setView(id)} className={`flex flex-col items-center justify-center w-16 h-14 relative ${view === id ? 'text-emerald-600' : 'text-gray-500'}`}>
-              <Icon className="w-6 h-6" />
-              <span className="text-xs mt-1 font-medium">{label}</span>
-              {count && count > 0 && (
-                <span className="absolute top-1 right-2 w-5 h-5 bg-emerald-500 text-white text-xs rounded-full flex items-center justify-center">
-                  {count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      </nav>
     </div>
   )
 }
