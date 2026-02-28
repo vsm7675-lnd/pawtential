@@ -22,7 +22,7 @@ const navItems: { id: ViewType; label: string; icon: React.ComponentType<{ class
 
 export function BottomNavigation({ currentView, onViewChange, favoritesCount, compareCount }: BottomNavigationProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50 pb-16">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-16 shadow-lg">
       <div className="max-w-lg mx-auto flex justify-around items-center h-16 px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
