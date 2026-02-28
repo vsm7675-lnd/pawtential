@@ -297,6 +297,7 @@ export default function BreedFinderApp() {
       { value: 'tropical', label: 'Tropical', desc: 'Humid conditions', icon: '🌴' },
     ]},
     { title: "Have children?", subtitle: "Some breeds are better with kids", field: 'hasKids', type: 'boolean' },
+    { title: "Senior in household?", subtitle: "Some breeds are better suited for seniors", field: 'hasSenior', type: 'boolean' },
     { title: "Grooming preference?", subtitle: "Some breeds need daily brushing, professional grooming", field: 'groomingPreference', type: 'choice', options: [
       { value: 'low', label: 'Low', desc: 'Minimal grooming' },
       { value: 'medium', label: 'Medium', desc: 'Weekly brushing' },

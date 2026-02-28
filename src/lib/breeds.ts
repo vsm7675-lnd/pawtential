@@ -85,6 +85,7 @@ export interface QuizAnswers {
   climate: 'hot' | 'moderate' | 'cold' | 'tropical' | '';
   hasKids: boolean;
   kidAges: string;
+  hasSenior: boolean;
   hasOtherPets: boolean;
   otherPetTypes: string;
   groomingPreference: 'low' | 'medium' | 'high' | '';
@@ -277,6 +278,18 @@ export function calculateMatchScore(answers: QuizAnswers, breed: Breed): MatchRe
     }
   } else {
     score += 7; // Neutral
+  }
+
+  // 7b. Senior Friendly (5 points)
+  if (answers.hasSenior) {
+    score += breed.senior_friendly_norm * 5;
+    if (breed.senior_friendly_norm >= 0.6) {
+      matchReasons.push('Great for seniors');
+    } else if (breed.senior_friendly_norm < 0.3) {
+      potentialConcerns.push('May not be ideal for seniors');
+    }
+  } else {
+    score += 3; // Neutral
   }
 
   // 8. Grooming Preference (5 points)

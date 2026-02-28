@@ -5,9 +5,14 @@ const config: CapacitorConfig = {
   appName: 'Pawtential',
   webDir: 'out',
   server: {
-    // Point to your deployed Vercel app
     url: 'https://pawtential.vercel.app',
-    cleartext: true
+    cleartext: true,
+    androidScheme: 'https'
+  },
+  android: {
+    // Keep app inside WebView, don't open browser
+    captureInput: true,
+    webContentsDebuggingEnabled: false
   },
   plugins: {
     SplashScreen: {
