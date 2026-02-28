@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import confetti from 'canvas-confetti'
+import { BottomNavigation } from '@/components/layout/bottom-navigation'
 
 // Types
 type View = 'home' | 'quiz' | 'favorites' | 'compare' | 'explore' | 'profile' | 'results'
@@ -1035,6 +1036,9 @@ export default function BreedFinderApp() {
           </motion.div>
         </AnimatePresence>
       </main>
+      
+      {/* Bottom Navigation */}
+      <BottomNavigation />
     </div>
   )
 }
