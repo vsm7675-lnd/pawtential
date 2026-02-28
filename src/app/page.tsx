@@ -20,7 +20,6 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import confetti from 'canvas-confetti'
-import { BottomNavigation } from '@/components/layout/bottom-navigation'
 
 // Types
 type View = 'home' | 'quiz' | 'favorites' | 'compare' | 'explore' | 'profile' | 'results'
@@ -1037,13 +1036,55 @@ export default function BreedFinderApp() {
         </AnimatePresence>
       </main>
       
-      {/* Bottom Navigation */}
-      <BottomNavigation 
-        currentView={view as any}
-        onViewChange={(newView) => setView(newView)}
-        favoritesCount={favorites.length}
-        compareCount={compareList.length}
-      />
+      {/* Bottom Navigation - Inline for debugging */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-[100] shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+        <div className="pb-16">
+          <div className="max-w-lg mx-auto flex justify-around items-center h-16 px-2">
+            {[
+              { id: 'home', label: 'Home', icon: Home },
+              { id: 'quiz', label: 'Quiz', icon: HelpCircle },
+              { id: 'favorites', label: 'Favorites', icon: Heart },
+              { id: 'compare', label: 'Compare', icon: GitCompare },
+              { id: 'explore', label: 'Explore', icon: Search },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = view === item.id;
+              const showBadge = item.id === 'favorites' && favorites.length > 0;
+              const showCount = item.id === 'compare' && compareList.length > 0;
+              
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    console.log('Navigation clicked:', item.id);
+                    setView(item.id as View);
+                  }}
+                  className={`flex flex-col items-center justify-center min-w-[64px] min-h-[48px] rounded-xl transition-all duration-200 active:scale-95 ${
+                    isActive ? 'text-emerald-600' : 'text-gray-500'
+                  }`}
+                >
+                  <div className="relative">
+                    <Icon className={`w-6 h-6 ${isActive ? 'scale-110' : ''}`} />
+                    {showBadge && (
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                        {favorites.length}
+                      </span>
+                    )}
+                    {showCount && (
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-emerald-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                        {compareList.length}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-xs mt-1 ${isActive ? 'font-bold' : ''}`}>
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
     </div>
   )
 }
