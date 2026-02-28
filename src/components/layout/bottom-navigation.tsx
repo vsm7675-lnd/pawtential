@@ -1,8 +1,16 @@
 'use client';
 
-import { useAppStore, ViewType } from '@/hooks/use-app-store';
 import { Home, HelpCircle, Heart, GitCompare, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+type ViewType = 'home' | 'quiz' | 'favorites' | 'compare' | 'explore' | 'profile' | 'results';
+
+interface BottomNavigationProps {
+  currentView: ViewType;
+  onViewChange: (view: ViewType) => void;
+  favoritesCount: number;
+  compareCount: number;
+}
 
 const navItems: { id: ViewType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'home', label: 'Home', icon: Home },
@@ -12,22 +20,20 @@ const navItems: { id: ViewType; label: string; icon: React.ComponentType<{ class
   { id: 'explore', label: 'Explore', icon: Search },
 ];
 
-export function BottomNavigation() {
-  const { currentView, setCurrentView, favorites, compareList } = useAppStore();
-
+export function BottomNavigation({ currentView, onViewChange, favoritesCount, compareCount }: BottomNavigationProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50 pb-16">
       <div className="max-w-lg mx-auto flex justify-around items-center h-16 px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
-          const showBadge = item.id === 'favorites' && favorites.length > 0;
-          const compareCount = item.id === 'compare' && compareList.length > 0 ? compareList.length : 0;
+          const showBadge = item.id === 'favorites' && favoritesCount > 0;
+          const showCompareCount = item.id === 'compare' && compareCount > 0;
           
           return (
             <button
               key={item.id}
-              onClick={() => setCurrentView(item.id)}
+              onClick={() => onViewChange(item.id)}
               className={cn(
                 'flex flex-col items-center justify-center min-w-[64px] min-h-[48px] rounded-xl transition-all duration-200',
                 'active:scale-95 touch-manipulation',
@@ -45,10 +51,10 @@ export function BottomNavigation() {
                 )} />
                 {showBadge && (
                   <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center px-1">
-                    {favorites.length > 9 ? '9+' : favorites.length}
+                    {favoritesCount > 9 ? '9+' : favoritesCount}
                   </span>
                 )}
-                {compareCount > 0 && (
+                {showCompareCount && (
                   <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center px-1">
                     {compareCount}
                   </span>

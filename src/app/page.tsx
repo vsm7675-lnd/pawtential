@@ -24,8 +24,6 @@ import { BottomNavigation } from '@/components/layout/bottom-navigation'
 
 // Types
 type View = 'home' | 'quiz' | 'favorites' | 'compare' | 'explore' | 'profile' | 'results'
-type SwipeDirection = 'left' | 'right' | null
-type PetPreference = 'dog' | 'cat' | 'both' | null
 
 // Convert breed name to slug (lowercase, spaces to dashes, remove special chars, normalize accents)
 function breedToSlug(name: string): string {
@@ -1038,7 +1036,12 @@ export default function BreedFinderApp() {
       </main>
       
       {/* Bottom Navigation */}
-      <BottomNavigation />
+      <BottomNavigation 
+        currentView={view as any}
+        onViewChange={(newView) => setView(newView)}
+        favoritesCount={favorites.length}
+        compareCount={compareList.length}
+      />
     </div>
   )
 }
