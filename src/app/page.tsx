@@ -158,8 +158,8 @@ export default function BreedFinderApp() {
   useEffect(() => {
     if (!selectedBreed || view !== 'profile') return
     
-    // Check if breed already has full data (has description field)
-    if ((selectedBreed as any).description) return
+    // Check if breed already has full data (check for field only in full data)
+    if ((selectedBreed as any).avg_monthly_food_cost_inr !== undefined) return
     
     setLoadingProfile(true)
     fetch(`/api/breeds?id=${selectedBreed.id}`)
@@ -921,7 +921,7 @@ export default function BreedFinderApp() {
               <div>
                 <div className="relative h-64">
                   <BreedImage breed={selectedBreed} className="w-full h-full object-cover" />
-                  <button onClick={() => setView('home')} className="absolute top-4 left-4 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow">
+                  <button onClick={() => { setSelectedBreed(null); setView('home') }} className="absolute top-4 left-4 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow">
                     <ChevronLeft className="w-6 h-6" />
                   </button>
                   <button 
@@ -939,6 +939,11 @@ export default function BreedFinderApp() {
                   </div>
                 </div>
 
+                {loadingProfile ? (
+                  <div className="flex justify-center py-12">
+                    <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
                 <Tabs defaultValue="overview" className="p-4">
                   <TabsList className="grid grid-cols-4 w-full">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -950,22 +955,22 @@ export default function BreedFinderApp() {
                   <TabsContent value="overview" className="mt-4">
                     <Card><CardContent className="p-4">
                       <h3 className="font-bold mb-2">About</h3>
-                      <p className="text-gray-600 text-sm">{selectedBreed.description}</p>
+                      <p className="text-gray-600 text-sm">{(selectedBreed as any).description || 'No description available.'}</p>
                       <Separator className="my-4" />
                       <h3 className="font-bold mb-3">Traits</h3>
                       <div className="space-y-2">
                         {[
                           { label: 'Adaptability', value: selectedBreed.adaptability },
-                          { label: 'Affection Level', value: selectedBreed.affection_level },
+                          { label: 'Affection Level', value: (selectedBreed as any).affection_level },
                           { label: 'Energy Level', value: selectedBreed.energy_level },
-                          { label: 'Intelligence', value: selectedBreed.intelligence },
+                          { label: 'Intelligence', value: (selectedBreed as any).intelligence },
                           { label: 'Child Friendly', value: selectedBreed.child_friendly },
-                          { label: 'Senior Friendly', value: selectedBreed.senior_friendly },
-                          { label: 'Urban Friendly', value: selectedBreed.urban_friendly },
-                        ].map(t => (
+                          { label: 'Senior Friendly', value: (selectedBreed as any).senior_friendly },
+                          { label: 'Urban Friendly', value: (selectedBreed as any).urban_friendly },
+                        ].filter(t => t.value !== undefined).map(t => (
                           <div key={t.label}>
                             <div className="flex justify-between text-sm"><span>{t.label}</span><span>{t.value}/5</span></div>
-                            <Progress value={t.value * 20} className="h-2" />
+                            <Progress value={(t.value ?? 0) * 20} className="h-2" />
                           </div>
                         ))}
                       </div>
@@ -1024,12 +1029,14 @@ export default function BreedFinderApp() {
                   </TabsContent>
 
                   <TabsContent value="notes" className="mt-4">
+                    {(selectedBreed as any).guardian_note && (
                     <Card className="border-yellow-200 bg-yellow-50"><CardContent className="p-4">
                       <h3 className="font-bold mb-2 flex items-center gap-2 text-yellow-700">
                         <AlertTriangle className="w-5 h-5" /> Guardian Notes
                       </h3>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{cleanGuardianNote(selectedBreed.guardian_note)}</p>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{cleanGuardianNote((selectedBreed as any).guardian_note)}</p>
                     </CardContent></Card>
+                    )}
                     
                     <Card className="mt-4"><CardContent className="p-4">
                       <h3 className="font-bold mb-3">Climate Tolerance</h3>
@@ -1065,6 +1072,7 @@ export default function BreedFinderApp() {
                     </CardContent></Card>
                   </TabsContent>
                 </Tabs>
+                )}
               </div>
             )}
 
