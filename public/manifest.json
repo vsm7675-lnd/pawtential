@@ -1,0 +1,17 @@
+{
+  "name": "BreedFinder",
+  "short_name": "BreedFinder",
+  "description": "Find your perfect pet companion with smart breed matching",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f97316",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
