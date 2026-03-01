@@ -419,15 +419,6 @@ export default function BreedFinderApp() {
                     <Sparkles className="w-5 h-5 mr-2" />
                     Take the Smart Quiz
                   </Button>
-
-                  {/* Download APK Guide */}
-                  <a 
-                    href="/Pawtential_APK_Build_Guide.docx" 
-                    download
-                    className="mt-6 w-full p-4 rounded-xl border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 transition-all flex items-center justify-center gap-2 text-blue-700"
-                  >
-                    📄 Download APK Build Guide
-                  </a>
                 </div>
               </div>
             )}
