@@ -237,11 +237,45 @@ export default function BreedFinderApp() {
 
   // Android hardware back button handling
   useEffect(() => {
-    const handleBackButton = (e: PopStateEvent) => {
-      e.preventDefault()
+    const setupBackButton = async () => {
+      // Handle Capacitor/App hardware back button
+      try {
+        const { App } = await import('@capacitor/app')
+        App.addListener('backButton', () => {
+          // Handle back navigation based on current view
+          if (view === 'profile') {
+            setSelectedBreed(null)
+            setView('home')
+          } else if (view === 'results') {
+            setView('quiz')
+            setQuizPage(0)
+          } else if (view === 'quiz' && quizPage > 0) {
+            setQuizPage(prev => prev - 1)
+          } else if (view === 'quiz') {
+            setView('home')
+            setQuizPage(0)
+          } else if (view === 'compare' || view === 'favorites' || view === 'explore') {
+            setView('home')
+          } else if (view === 'home' && petPreference) {
+            setPetPreference(null)
+            setCurrentIndex(0)
+          } else {
+            // On home with no pet preference - exit the app
+            App.exitApp()
+          }
+        })
+      } catch (e) {
+        // Not running in Capacitor - use browser history
+        console.log('Capacitor App plugin not available')
+      }
+    }
+    
+    setupBackButton()
 
-      // Handle back navigation based on current view
+    // Browser back button handling (for web)
+    const handlePopState = () => {
       if (view === 'profile') {
+        setSelectedBreed(null)
         setView('home')
       } else if (view === 'results') {
         setView('quiz')
@@ -257,17 +291,14 @@ export default function BreedFinderApp() {
         setPetPreference(null)
         setCurrentIndex(0)
       }
-      // If on home with no pet preference, let default behavior (exit app)
+      // On home with no pet preference - browser handles it naturally
     }
 
-    // Listen for browser back button (also works in Capacitor WebView)
-    window.addEventListener('popstate', handleBackButton)
-
-    // Push a state so we can intercept back button
+    window.addEventListener('popstate', handlePopState)
     window.history.pushState(null, '', window.location.href)
 
     return () => {
-      window.removeEventListener('popstate', handleBackButton)
+      window.removeEventListener('popstate', handlePopState)
     }
   }, [view, quizPage, petPreference])
 
